@@ -29,7 +29,7 @@ import os
 import errno
 import traceback
 import re
-from io import StringIO
+import tempfile
 
 from Mailman import mm_cfg
 from Mailman import Mailbox
@@ -164,7 +164,7 @@ class Archiver:
             afn = self.ArchiveFileName()
             mbox = self.__archive_file(afn)
             mbox.AppendMessage(post)
-            mbox.fp.close()
+            mbox.close()
         except IOError as msg:
             syslog('error', 'Archive file access failure:\n\t%s %s', afn, msg)
             raise
@@ -197,7 +197,12 @@ class Archiver:
             if mm_cfg.ARCHIVE_TO_MBOX == 1:
                 # Archive to mbox only.
                 return
-        txt = str(msg)
+
+        txt = msg.as_string()
+        unixfrom = msg.get_unixfrom()
+        if not txt.startswith(unixfrom):
+            txt = unixfrom + '\n' + txt
+
         # should we use the internal or external archiver?
         private_p = self.archive_private
         if mm_cfg.PUBLIC_EXTERNAL_ARCHIVER and not private_p:
@@ -206,7 +211,11 @@ class Archiver:
             self.ExternalArchive(mm_cfg.PRIVATE_EXTERNAL_ARCHIVER, txt)
         else:
             # use the internal archiver
-            f = StringIO(txt)
+            f = tempfile.NamedTemporaryFile()
+            if isinstance(txt, str):
+                txt = txt.encode('utf-8')
+            f.write(txt)
+            f.flush()
             from . import HyperArch
             h = HyperArch.HyperArchive(self)
             h.processUnixMailbox(f)

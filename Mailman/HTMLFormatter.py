@@ -56,11 +56,11 @@ class HTMLFormatter(object):
                    innertext,
                     '<br>',
                     Link(self.GetScriptURL('admin'),
-                         _(f'{realname} administrative interface')),
+                        _(f'{realname} administrative interface')),
                     _(' (requires authorization)'),
                     '<br>',
                     Link(Utils.ScriptURL('listinfo'),
-                         _(f'Overview of all {hostname} mailing lists')),
+                        _(f'Overview of all {hostname} mailing lists')),
                     '<p>', MailmanLogo()))).Format()
 
     def FormatUsers(self, digest, lang=None, list_hidden=False):
@@ -255,7 +255,7 @@ class HTMLFormatter(object):
             either = ''
         realname = self.real_name
 
-        text = _(f'''To unsubscribe from {realname}, get a password reminder,
+        text = (_(f'''To unsubscribe from {realname}, get a password reminder,
         or change your subscription options {either}enter your subscription
         email address:
         <p><center><input name="email" type="TEXT" value="" size="30">''')
@@ -349,10 +349,9 @@ class HTMLFormatter(object):
         return '</FORM>'
 
     def FormatBox(self, name, size=20, value=''):
-        if isinstance(value, str):
-            safevalue = Utils.websafe(value)
-        else:
-            safevalue = value
+        if isinstance(value, bytes):
+            value = value.decode('utf-8')
+        safevalue = Utils.websafe(value)
         return '<INPUT type="Text" name="%s" size="%d" value="%s">' % (
             name, size, safevalue)
 

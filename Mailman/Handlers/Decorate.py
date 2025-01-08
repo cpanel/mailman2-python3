@@ -40,7 +40,7 @@ def process(mlist, msg, msgdata):
         # Calculate the extra personalization dictionary.  Note that the
         # length of the recips list better be exactly 1.
         recips = msgdata.get('recips')
-        assert type(recips) == ListType and len(recips) == 1
+        assert type(recips) == list and len(recips) == 1
         member = recips[0].lower()
         d['user_address'] = member
         try:
@@ -102,7 +102,9 @@ def process(mlist, msg, msgdata):
         else:
             ufooter = str(footer, lcset, 'ignore')
         try:
-            oldpayload = str(msg.get_payload(decode=True), mcset)
+            oldpayload = msg.get_payload()
+            if isinstance(oldpayload, bytes):
+                oldpayload.decode()
             frontsep = endsep = u''
             if header and not header.endswith('\n'):
                 frontsep = u'\n'
@@ -135,7 +137,7 @@ def process(mlist, msg, msgdata):
         # The next easiest thing to do is just prepend the header and append
         # the footer as additional subparts
         payload = msg.get_payload()
-        if not isinstance(payload, ListType):
+        if not isinstance(payload, list):
             payload = [payload]
         if footer:
             mimeftr = MIMEText(footer, 'plain', lcset)

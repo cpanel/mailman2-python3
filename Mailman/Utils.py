@@ -249,20 +249,20 @@ def ValidateEmail(s):
             s = s[-1]
     # Pretty minimal, cheesy check.  We could do better...
     if not s or s.count(' ') > 0:
-        raise Exception(Errors.MMBadEmailError)
+        raise Errors.MMBadEmailError
     if _badchars.search(s):
-        raise Exception(Errors.MMHostileAddress, s)
+        raise Errors.MMHostileAddress(s)
     user, domain_parts = ParseEmail(s)
     # This means local, unqualified addresses, are not allowed
     if not domain_parts:
-        raise Exception(Errors.MMBadEmailError, s)
+        raise Errors.MMBadEmailError(s)
     if len(domain_parts) < 2:
-        raise Exception(Errors.MMBadEmailError, s)
+        raise Errors.MMBadEmailError(s)
     # domain parts may only contain ascii letters, digits and hyphen
     # and must not begin with hyphen.
     for p in domain_parts:
         if len(p) == 0 or p[0] == '-' or len(_valid_domain.sub('', p)) > 0:
-            raise Exception(Errors.MMHostileAddress, s)
+            raise Errors.MMHostileAddress(s)
 
 
 
@@ -451,7 +451,10 @@ def set_global_password(pw, siteadmin=True):
     omask = os.umask(0o026)
     try:
         fp = open(filename, 'w')
-        fp.write(sha_new(pw).hexdigest() + '\n')
+        if isinstance(pw, bytes):
+            fp.write(sha_new(pw).hexdigest() + '\n')
+        else:
+            fp.write(sha_new(pw.encode()).hexdigest() + '\n')
         fp.close()
     finally:
         os.umask(omask)
@@ -477,7 +480,10 @@ def check_global_password(response, siteadmin=True):
     challenge = get_global_password(siteadmin)
     if challenge is None:
         return None
-    return challenge == sha_new(response).hexdigest()
+    if isinstance(response, bytes):
+        return challenge == sha_new(response).hexdigest()
+    else:
+        return challenge == sha_new(response.encode()).hexdigest()
 
 
 
@@ -632,9 +638,32 @@ def findtext(templatefile, dict=None, raw=False, lang=None, mlist=None):
         except IOError as e:
             if e.errno != errno.ENOENT: raise
             # We never found the template.  BAD!
-            raise Exception(IOError(errno.ENOENT, 'No template file found', templatefile))
-    template = fp.read()
-    fp.close()
+            raise IOError(errno.ENOENT, 'No template file found', templatefile)
+    try:
+        template = fp.read()
+    except UnicodeDecodeError as e:
+        # failed to read the template as utf-8, so lets determine the current encoding
+        # then save the file back to disk as utf-8.
+        filename = fp.name
+        fp.close()
+
+        current_encoding = get_current_encoding(filename)
+
+        with open(filename, 'rb') as f:
+            raw = f.read()
+
+        decoded_template = raw.decode(current_encoding)
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(decoded_template)
+
+        template = decoded_template
+    except Exception as e:
+        # catch any other non-unicode exceptions...
+        syslog('error', 'Failed to read template %s: %s', fp.name, e)
+    finally:
+        fp.close()
+
     text = template
     if dict is not None:
         try:
@@ -841,6 +870,8 @@ def midnight(date=None):
 
 def to_dollar(s):
     """Convert from %-strings to $-strings."""
+    if isinstance(s, bytes):
+        s = s.decode()
     s = s.replace('$', '$$').replace('%%', '%')
     parts = cre.split(s)
     for i in range(1, len(parts), 2):
@@ -876,6 +907,8 @@ def dollar_identifiers(s):
 def percent_identifiers(s):
     """Return the set (dictionary) of identifiers found in a %-string."""
     d = {}
+    if isinstance(s, bytes):
+        s = s.decode()
     for name in cre.findall(s):
         d[name] = True
     return d
@@ -968,9 +1001,8 @@ def oneline(s, cset):
     # Decode header string in one line and convert into specified charset
     try:
         h = email.header.make_header(email.header.decode_header(s))
-        ustr = h.__unicode__()
-        line = UEMPTYSTRING.join(ustr.splitlines())
-        return line.encode(cset, 'replace')
+        ustr = h.__str__()
+        return UEMPTYSTRING.join(ustr.splitlines())
     except (LookupError, UnicodeError, ValueError, HeaderParseError):
         # possibly charset problem. return with undecoded string in one line.
         return EMPTYSTRING.join(s.splitlines())
@@ -1517,7 +1549,7 @@ def xml_to_unicode(s, cset):
     similar to canonstr above except for replacing invalid refs with the
     unicode replace character and recognizing \\u escapes.
     """
-    if isinstance(s, str):
+    if isinstance(s, bytes):
         us = s.decode(cset, 'replace')
         us = re.sub(u'&(#[0-9]+);', _invert_xml, us)
         us = re.sub(u'(?i)\\\\(u[a-f0-9]{4})', _invert_xml, us)
@@ -1606,3 +1638,15 @@ def captcha_verify(idx, given_answer, captchas):
     # We append a `$` to emulate `re.fullmatch`.
     correct_answer_pattern = captchas[idx][1] + "$"
     return re.match(correct_answer_pattern, given_answer)
+
+def get_current_encoding(filename):
+    encodings = [ 'utf-8', 'iso-8859-1', 'iso-8859-2', 'iso-8859-15', 'iso-8859-7', 'iso-8859-13', 'euc-jp', 'euc-kr', 'iso-8859-9', 'us-ascii' ]
+    for encoding in encodings:
+        try:
+            with open(filename, 'r', encoding=encoding) as f:
+                f.read()
+            return encoding
+        except UnicodeDecodeError as e:
+            continue
+    # if everything fails, send utf-8 and hope for the best...
+    return 'utf-8'

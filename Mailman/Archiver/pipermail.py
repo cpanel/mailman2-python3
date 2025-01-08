@@ -1,5 +1,6 @@
-#! /usr/bin/env python
+#! /usr/bin/python3
 
+import errno
 import mailbox
 import os
 import re
@@ -8,10 +9,7 @@ import time
 from email.utils import parseaddr, parsedate_tz, mktime_tz, formatdate
 import pickle
 from io import StringIO
-
-# Work around for some misguided Python packages that add iso-8859-1
-# accented characters to string.lowercase.
-lowercase = lowercase[:26]
+from string import ascii_lowercase as lowercase
 
 __version__ = '0.09 (Mailman edition)'
 VERSION = __version__
@@ -115,7 +113,7 @@ class Database(DatabaseInterface):
         self.changed[archive, article.msgid] = None
 
         parentID = article.parentID
-        if parentID is not None and parentID in self.articleIndex:
+        if parentID is not None and self.articleIndex.has_key(parentID):
             parent = self.getArticle(archive, parentID)
             myThreadKey = (parent.threadKey + article.date + '.'
                            + str(article.sequence) + '-')
@@ -220,8 +218,9 @@ class Article(object):
                 self.headers[i] = message[i]
 
         # Read the message body
-        s = StringIO(message.get_payload(decode=True)\
-                     or message.as_string().split('\n\n',1)[1])
+        msg = message.get_payload()\
+                     or message.as_string().split('\n\n',1)[1]
+        s = StringIO(msg)
         self.body = s.readlines()
 
     def _set_date(self, message):
@@ -284,10 +283,9 @@ class T(object):
         # message in the HTML archive now -- Marc
         try:
             os.stat(self.basedir)
-        except os.error as errdata:
-            errno, errmsg = errdata
-            if errno != 2:
-                raise os.error(errdata)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
             else:
                 self.message(C_('Creating archive directory ') + self.basedir)
                 omask = os.umask(0)
@@ -300,9 +298,9 @@ class T(object):
         try:
             if not reload:
                 raise IOError
-            f = open(os.path.join(self.basedir, 'pipermail.pck'), 'r')
+            f = open(os.path.join(self.basedir, 'pipermail.pck'), 'rb')
             self.message(C_('Reloading pickled archive state'))
-            d = pickle.load(f, fix_imports=True, encoding='latin1')
+            d = pickle.load(f, fix_imports=True)
             f.close()
             for key, value in list(d.items()):
                 setattr(self, key, value)
@@ -335,7 +333,7 @@ class T(object):
 
         omask = os.umask(0o007)
         try:
-            f = open(os.path.join(self.basedir, 'pipermail.pck'), 'w')
+            f = open(os.path.join(self.basedir, 'pipermail.pck'), 'wb')
         finally:
             os.umask(omask)
         pickle.dump(self.getstate(), f)
@@ -552,7 +550,8 @@ class T(object):
         return Article(msg, sequence)
 
     def processUnixMailbox(self, input, start=None, end=None):
-        mbox = ArchiverMailbox(input, self.maillist)
+        mbox = ArchiverMailbox(input.name, self.maillist)
+        mbox_iterator = iter(mbox.values())
         if start is None:
             start = 0
         counter = 0
@@ -560,7 +559,7 @@ class T(object):
             mbox.skipping(True)
         while counter < start:
             try:
-                m = next(mbox)
+                m = next(mbox_iterator, None)
             except Errors.DiscardMessage:
                 continue
             if m is None:
@@ -571,7 +570,7 @@ class T(object):
         while 1:
             try:
                 pos = input.tell()
-                m = next(mbox)
+                m = next(mbox_iterator, None)
             except Errors.DiscardMessage:
                 continue
             except Exception:
@@ -599,16 +598,15 @@ class T(object):
         # If the archive directory doesn't exist, create it
         try:
             os.stat(archivedir)
-        except os.error as errdata:
-            errno, errmsg = errdata
-            if errno == 2:
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+            else:
                 omask = os.umask(0)
                 try:
                     os.mkdir(archivedir, self.DIRMODE)
                 finally:
                     os.umask(omask)
-            else:
-                raise os.error(errdata)
         self.open_new_archive(archive, archivedir)
 
     def add_article(self, article):
@@ -826,7 +824,7 @@ class BSDDBdatabase(Database):
         self.__closeIndices()
     def hasArticle(self, archive, msgid):
         self.__openIndices(archive)
-        return msgid in self.articleIndex
+        return self.articleIndex.has_key(msgid)
     def setThreadKey(self, archive, key, msgid):
         self.__openIndices(archive)
         self.threadIndex[key] = msgid

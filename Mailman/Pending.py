@@ -68,7 +68,7 @@ class Pending(object):
         # are discarded because they're the most predictable bits.
         while True:
             now = time.time()
-            x = random.random() + now % 1.0
+            x = random.random() + now % 1.0 + time.time() % 1.0
             cookie = sha_new(repr(x).encode()).hexdigest()
             # We'll never get a duplicate, but we'll be anal about checking
             # anyway.
@@ -84,7 +84,7 @@ class Pending(object):
 
     def __load(self):
         try:
-            fp = open(self.__pendfile)
+            fp = open(self.__pendfile, 'rb')
         except IOError as e:
             if e.errno != errno.ENOENT: raise
             return {'evictions': {}}

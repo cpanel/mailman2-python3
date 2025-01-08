@@ -93,6 +93,8 @@ class Connection(object):
         if self.__conn is None:
             self.__connect()
         try:
+            if isinstance( msgtext, str ):
+                msgtext = msgtext.encode('utf-8', errors='ignore')
             results = self.__conn.sendmail(envsender, recips, msgtext)
         except smtplib.SMTPException:
             # For safety, close this connection.  The next send attempt will
@@ -359,7 +361,7 @@ def verpdeliver(mlist, msg, msgdata, envsender, failures, conn):
                     charset = 'iso-8859-1'
                 charset = Charset(charset)
                 codec = charset.input_codec or 'ascii'
-                if not isinstance(name, UnicodeType):
+                if not isinstance(name, str):
                     name = str(name, codec, 'replace')
                 name = Header(name, charset).encode()
                 msgcopy['To'] = formataddr((name, recip))

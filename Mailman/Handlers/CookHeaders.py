@@ -38,10 +38,6 @@ CONTINUATION = ',\n '
 COMMASPACE = ', '
 MAXLINELEN = 78
 
-
-def _isunicode(s):
-    return isinstance(s, UnicodeType)
-
 nonascii = re.compile('[^\s!-~]')
 
 def uheader(mlist, s, header_name=None, continuation_ws=' ', maxlinelen=None):
@@ -50,7 +46,12 @@ def uheader(mlist, s, header_name=None, continuation_ws=' ', maxlinelen=None):
     # us-ascii then we use iso-8859-1 instead. If the string is ascii only
     # we use 'us-ascii' if another charset is specified.
     charset = Utils.GetCharSet(mlist.preferred_language)
-    if nonascii.search(s):
+    if isinstance(s, bytes):
+        search_string = s.decode()
+    else:
+        search_string = s
+
+    if nonascii.search(search_string):
         # use list charset but ...
         if charset == 'us-ascii':
             charset = 'iso-8859-1'
@@ -160,7 +161,12 @@ def process(mlist, msg, msgdata):
         # likewise, the list's real_name which should be ascii, but use the
         # charset of the list's preferred_language which should be a superset.
         lcs = Utils.GetCharSet(mlist.preferred_language)
-        ulrn = str(mlist.real_name, lcs, errors='replace')
+
+        if isinstance(mlist.real_name, str):
+            ulrn = mlist.real_name
+        else:
+            ulrn = str(mlist.real_name, lcs, errors='replace')
+
         # get translated 'via' with dummy replacements
         realname = '%(realname)s'
         lrn = '%(lrn)s'
@@ -170,7 +176,12 @@ def process(mlist, msg, msgdata):
         i18n.set_language(mlist.preferred_language)
         via = _('%(realname)s via %(lrn)s')
         i18n.set_translation(otrans)
-        uvia = str(via, lcs, errors='replace')
+
+        if isinstance(via, str):
+            uvia = via
+        else:
+            uvia = str(via, lcs, errors='replace')
+
         # Replace the dummy replacements.
         uvia = re.sub(u'%\(lrn\)s', ulrn, re.sub(u'%\(realname\)s', urn, uvia))
         # And get an RFC 2047 encoded header string.
@@ -392,7 +403,7 @@ def prefix_subject(mlist, msg, msgdata):
     # range.  It is safe to use unicode string when manupilating header
     # contents with re module.  It would be best to return unicode in
     # ch_oneline() but here is temporary solution.
-    subject = str(subject, cset)
+    subject = subject.__str__() #TODO will this break some encodings?
     # If the subject_prefix contains '%d', it is replaced with the
     # mailing list sequential number.  Sequential number format allows
     # '%d' or '%05d' like pattern.
@@ -498,9 +509,8 @@ def ch_oneline(headerstr):
                 cset = x[1]
                 break
         h = make_header(d)
-        ustr = h.__unicode__()
-        oneline = u''.join(ustr.splitlines())
-        return oneline.encode(cset, 'replace'), cset
+        ustr = h
+        return ustr, cset
     except (LookupError, UnicodeError, ValueError, HeaderParseError):
         # possibly charset problem. return with undecoded string in one line.
         return ''.join(headerstr.splitlines()), 'us-ascii'

@@ -1123,7 +1123,7 @@ class MailList(HTMLFormatter, Deliverer, ListAdmin,
                 subject = _('%(realname)s subscription notification')
             finally:
                 i18n.set_translation(otrans)
-            if isinstance(name, UnicodeType):
+            if isinstance(name, str):
                 name = name.encode(Utils.GetCharSet(lang), 'replace')
             text = Utils.maketext(
                 "adminsubscribeack.txt",
@@ -1328,7 +1328,7 @@ class MailList(HTMLFormatter, Deliverer, ListAdmin,
             name = self.getMemberName(newaddr)
             if name is None:
                 name = ''
-            if isinstance(name, UnicodeType):
+            if isinstance(name, str):
                 name = name.encode(Utils.GetCharSet(lang), 'replace')
             text = Utils.maketext(
                 'adminaddrchgack.txt',
@@ -1427,7 +1427,7 @@ class MailList(HTMLFormatter, Deliverer, ListAdmin,
                 approved = context.get('Approved', context.get('Approve'))
                 if not approved:
                     try:
-                        subpart = list(email.Iterators.typed_subpart_iterator(
+                        subpart = list(email.iterators.typed_subpart_iterator(
                             context, 'text', 'plain'))[0]
                     except IndexError:
                         subpart = None
