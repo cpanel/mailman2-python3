@@ -1664,4 +1664,6 @@ def set_cte_if_missing(msg):
         msg['Content-Transfer-Encoding'] = '7bit'
     if msg.is_multipart():
         for part in msg.get_payload():
+            if not hasattr(part, 'policy'):
+                part.policy = email._policybase.compat32
             set_cte_if_missing(part)
