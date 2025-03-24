@@ -723,6 +723,8 @@ def show_post_requests(mlist, id, info, total, count, form):
     # Use the new email package API to extract and iterate over message lines
     if msg.is_multipart():
         for part in msg.walk():
+            if not hasattr(part, 'policy'):
+                part.policy = email._policybase.compat32
             if part.get_content_type() == 'text/plain':
                 payload = part.get_payload(decode=True)
                 if payload:
