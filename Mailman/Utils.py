@@ -146,7 +146,7 @@ def wrap(text, column=70, honor_leading_ws=True):
     """
     wrapped = ''
     # first split the text into paragraphs, defined as a blank line
-    paras = re.split('\n\n', text)
+    paras = re.split(r'\n\n', text)
     for para in paras:
         # fill
         lines = []
@@ -1047,7 +1047,7 @@ def strip_verbose_pattern(pattern):
         elif c == ']' and inclass:
             inclass = False
             newpattern += c
-        elif re.search('\s', c):
+        elif re.search(r'\s', c):
             if inclass:
                 if c == NL:
                     newpattern += '\\n'
@@ -1207,10 +1207,10 @@ _badwords = [
 _badhtml = re.compile('|'.join(_badwords), re.IGNORECASE)
 # This is used to filter non-printable us-ascii characters, some of which
 # can be used to break words to avoid recognition.
-_filterchars = re.compile('[\000-\011\013\014\016-\037\177-\237]')
+_filterchars = re.compile(r'[\000-\011\013\014\016-\037\177-\237]')
 # This is used to recognize '&#' and '%xx' strings for _translate which
 # translates them to characters
-_encodedchars = re.compile('(&#[0-9]+;?)|(&#x[0-9a-f]+;?)|(%[0-9a-f]{2})',
+_encodedchars = re.compile(r'(&#[0-9]+;?)|(&#x[0-9a-f]+;?)|(%[0-9a-f]{2})',
                            re.IGNORECASE)
 
 

@@ -436,10 +436,10 @@ class Article(pipermail.Article):
             subject = re.sub(prefix_pat, '', subject)
         subject = subject.lstrip()
         # MAS Should we strip FW and FWD too?
-        strip_pat = re.compile('^((RE|AW|SV|VS)(\[\d+\])?:\s*)+', re.I)
+        strip_pat = re.compile(r'^((RE|AW|SV|VS)(\[\d+\])?:\s*)+', re.I)
         stripped = strip_pat.sub('', subject)
         # Also remove whitespace to avoid folding/unfolding differences
-        stripped = re.sub('\s', '', stripped)
+        stripped = re.sub(r'\s', '', stripped)
         return stripped
 
     def decode_charset(self, field):
@@ -534,8 +534,8 @@ class Article(pipermail.Article):
             next = next_wsubj = ""
         return next, next_wsubj
 
-    _rx_quote = re.compile('=([A-F0-9][A-F0-9])')
-    _rx_softline = re.compile('=[ \t]*$')
+    _rx_quote = re.compile(r'=([A-F0-9][A-F0-9])')
+    _rx_softline = re.compile(r'=[ \t]*$')
 
     def _get_body(self):
         """Return the message body ready for HTML, decoded if necessary"""
