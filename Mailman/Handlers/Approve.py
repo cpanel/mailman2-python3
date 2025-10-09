@@ -122,13 +122,13 @@ def process(mlist, msg, msgdata):
             # If we don't find the pattern in the decoded part, but we do
             # find it after stripping HTML tags, we don't know how to remove
             # it, so we just reject the post.
-            pattern = name + ':(\xA0|\s|&nbsp;)*' + re.escape(passwd)
+            pattern = name + r':(\xA0|\s|&nbsp;)*' + re.escape(passwd)
             for part in typed_subpart_iterator(msg, 'text'):
                 if part is not None and part.get_payload() is not None:
                     lines = part.get_payload(decode=True)
                     if re.search(pattern, lines):
                         reset_payload(part, re.sub(pattern, '', lines))
-                    elif re.search(pattern, re.sub('(?s)<.*?>', '', lines)):
+                    elif re.search(pattern, re.sub(r'(?s)<.*?>', '', lines)):
                         raise Errors.RejectMessage(REJECT)
     if passwd is not missing and mlist.Authenticate((mm_cfg.AuthListPoster,
                                                      mm_cfg.AuthListModerator,

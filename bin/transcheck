@@ -364,8 +364,8 @@ def main():
 
     lang = args[0]
 
-    isHtml = re.compile("\.html$");
-    isTxt = re.compile("\.txt$");
+    isHtml = re.compile(r"\.html$");
+    isTxt = re.compile(r"\.txt$");
 
     numerrors = 0
     numfiles = 0

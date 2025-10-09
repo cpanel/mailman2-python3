@@ -38,7 +38,7 @@ CONTINUATION = ',\n '
 COMMASPACE = ', '
 MAXLINELEN = 78
 
-nonascii = re.compile('[^\s!-~]')
+nonascii = re.compile(r'[^\s!-~]')
 
 def uheader(mlist, s, header_name=None, continuation_ws=' ', maxlinelen=None):
     # Get the charset to encode the string in. Then search if there is any

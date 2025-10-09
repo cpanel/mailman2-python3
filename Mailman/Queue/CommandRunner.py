@@ -152,8 +152,8 @@ class Results:
                 return BADCMD
             if self.subjcmdretried < 1:
                 self.subjcmdretried += 1
-                if re.search('^.*:.+', cmd):
-                    cmd = re.sub('.*:', '', cmd).lower()
+                if re.search(r'^.*:.+', cmd):
+                    cmd = re.sub(r'.*:', '', cmd).lower()
                     return self.do_command(cmd, args)
             if self.subjcmdretried < 2 and args:
                 self.subjcmdretried += 1

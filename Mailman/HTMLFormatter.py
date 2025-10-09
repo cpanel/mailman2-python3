@@ -365,7 +365,7 @@ class HTMLFormatter(object):
         else:
             charset = Utils.GetCharSet(lang)
         text = Utils.maketext(template, raw=1, lang=lang, mlist=self)
-        parts = re.split('(</?[Mm][Mm]-[^>]*>)', text)
+        parts = re.split(r'(</?[Mm][Mm]-[^>]*>)', text)
         i = 1
         while i < len(parts):
             tag = parts[i].lower()
