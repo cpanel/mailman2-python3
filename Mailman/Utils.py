@@ -1530,7 +1530,7 @@ def check_eq_domains(email, domains_list):
     except ValueError:
         return []
     domain = domain.lower()
-    domains_list = re.sub('\s', '', domains_list).lower()
+    domains_list = re.sub(r'\s', '', domains_list).lower()
     domains = domains_list.split(';')
     domains_list = []
     for d in domains:
