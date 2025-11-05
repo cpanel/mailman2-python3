@@ -419,7 +419,7 @@ class Article(pipermail.Article):
                     i18n.set_language(self._lang)
                     atmark = _(' at ')
                     subject = re.sub(r'([-+,.\w]+)@([-+.\w]+)',
-                              '\g<1>' + atmark + '\g<2>', subject)
+                              r'\g<1>' + atmark + r'\g<2>', subject)
                 finally:
                     i18n.set_translation(otrans)
             self.decoded['subject'] = subject
@@ -589,7 +589,7 @@ class Article(pipermail.Article):
                 if isinstance(atmark, bytes):
                     atmark = str(atmark, cset)
                 body = re.sub(r'([-+,.\w]+)@([-+.\w]+)',
-                              '\g<1>' + atmark + '\g<2>', body)
+                              r'\g<1>' + atmark + r'\g<2>', body)
             finally:
                 i18n.set_translation(otrans)
 
